@@ -26,10 +26,10 @@
     </Placemark>
     <Placemark>
       <n>Brushy Creek</n>
-      <styleUrl>#Active</styleUrl>
+      <styleUrl>#Medium</styleUrl>
       <description><![CDATA[3017 Polar Lane Cedar Park, TX 78613 US]]></description>
       <Point>
-        <coordinates>-97.77515,30.517065</coordinates>
+        <coordinates>-97.77669505515021,30.53198033473318</coordinates>
       </Point>
     </Placemark>
     <Placemark>
