@@ -84,137 +84,6 @@ function updateZoneVisibility(zoneType, isVisible) {
     });
 }
 
-// Load KML files from enrollment_zones directory
-async function loadEnrollmentZones() {
-    try {
-        // First load the configuration CSV
-        const csvResponse = await fetch('data/enrollment_zones_config.csv');
-        const csvText = await csvResponse.text();
-        
-        // Parse CSV (skip header row)
-        const configs = csvText.split('\n')
-            .slice(1)
-            .filter(line => line.trim())
-            .map(line => {
-                const [filename, locationName, status] = line.split(',').map(s => s.trim());
-                return { filename, locationName, status };
-            });
-
-        // Remove existing layer if it exists
-        if (enrollmentZonesLayer && map.getLayer('enrollment-zones')) {
-            map.removeLayer('enrollment-zones');
-            map.removeLayer('enrollment-zones-border');
-            map.removeSource('enrollment-zones');
-        }
-
-        zoneFeatures = []; // Reset features array
-        
-        // Load each KML file from the config
-        for (const config of configs) {
-            try {
-                const response = await fetch(`data/enrollment_zones/${config.filename}`);
-                if (!response.ok) {
-                    console.error('Failed to load file:', config.filename);
-                    continue;
-                }
-                const kmlText = await response.text();
-                
-                // Parse KML using DOMParser
-                const parser = new DOMParser();
-                const kmlDoc = parser.parseFromString(kmlText, 'text/xml');
-                
-                // Extract coordinates from KML
-                const placemarks = kmlDoc.getElementsByTagName('Placemark');
-                for (const placemark of placemarks) {
-                    const coordinates = placemark.getElementsByTagName('coordinates')[0]?.textContent.trim();
-                    if (coordinates) {
-                        // KML coordinates are in lon,lat,alt format
-                        const coords = coordinates.split(' ')
-                            .filter(coord => coord.trim())
-                            .map(coord => {
-                                const [lon, lat] = coord.split(',');
-                                return [parseFloat(lon), parseFloat(lat)];
-                            });
-
-                        zoneFeatures.push({
-                            type: 'Feature',
-                            geometry: {
-                                type: 'Polygon',
-                                coordinates: [coords]
-                            },
-                            properties: {
-                                name: config.locationName,
-                                status: config.status
-                            }
-                        });
-                    }
-                }
-            } catch (error) {
-                console.error('Error processing file:', config.filename, error);
-            }
-        }
-
-        // Add the source and layer to the map
-        map.addSource('enrollment-zones', {
-            type: 'geojson',
-            data: {
-                type: 'FeatureCollection',
-                features: zoneFeatures.filter(feature => {
-                    const status = feature.properties.status;
-                    const type = statusToZoneType[status];
-                    return activeZoneTypes.has(type) && activeStatusFilters.has(status);
-                })
-            }
-        });
-
-        // Add fill layer
-        map.addLayer({
-            id: 'enrollment-zones',
-            type: 'fill',
-            source: 'enrollment-zones',
-            paint: {
-                'fill-color': '#000000',
-                'fill-opacity': 0.15
-            },
-            layout: {
-                visibility: 'visible'
-            }
-        });
-
-        // Add line layer for borders
-        map.addLayer({
-            id: 'enrollment-zones-border',
-            type: 'line',
-            source: 'enrollment-zones',
-            paint: {
-                'line-color': ['get', ['to-string', ['get', 'status']], ['literal', statusColors]],
-                'line-width': 3,
-                'line-opacity': 0.8
-            },
-            layout: {
-                visibility: 'visible'
-            }
-        });
-
-        // Add hover effect
-        map.on('mouseenter', 'enrollment-zones', (e) => {
-            map.getCanvas().style.cursor = 'pointer';
-            if (e.features.length > 0) {
-                popup.setLngLat(e.lngLat)
-                    .setHTML(`<h3>${e.features[0].properties.name}</h3>`)
-                    .addTo(map);
-            }
-        });
-
-        map.on('mouseleave', 'enrollment-zones', () => {
-            map.getCanvas().style.cursor = '';
-            popup.remove();
-        });
-
-    } catch (error) {
-        console.error('Error loading enrollment zones:', error);
-    }
-}
 
 // Create location filters in HTML
 function createLocationFilters() {
@@ -358,9 +227,9 @@ function createStatusFilters() {
 
     // Define status types and their labels
     const statusTypes = [
-        { id: 'High', label: 'High Enrollment' },
-        { id: 'Medium', label: 'Medium Enrollment' },
-        { id: 'Low', label: 'Low Enrollment' },
+        { id: 'High', label: 'High Enrollment (20+)' },
+        { id: 'Medium', label: 'Medium Enrollment (6-19)' },
+        { id: 'Low', label: 'Low Enrollment (1-5)' },
     ];
 
     // Create filters for each status type

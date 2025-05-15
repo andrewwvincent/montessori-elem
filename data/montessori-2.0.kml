@@ -18,7 +18,7 @@
     </Placemark>
     <Placemark>
       <n>Broadlands</n>
-      <styleUrl>#Medium</styleUrl>
+      <styleUrl>#High</styleUrl>
       <description><![CDATA[42945 Waxpool Rd, Ashburn, VA 20148 US]]></description>
       <Point>
         <coordinates>-77.518102,39.016795</coordinates>
